@@ -14,9 +14,13 @@ st.set_page_config(
 
 RESULT_FILE = "results.csv"
 
-# Development login
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "PNPI@123"
+# Admin credentials setup (Safe fallback for local & cloud)
+try:
+    ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
+    ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+except:
+    ADMIN_USERNAME = "admin"
+    ADMIN_PASSWORD = "PNPI@123"
 
 
 # ==========================================
@@ -212,7 +216,7 @@ if page == "Student Result":
     if st.button(
         "🔍 Check Result",
         type="primary",
-        width='stretch'
+        use_container_width=True
     ):
         if not p_no.strip():
             st.warning("⚠️ Please enter your P.No.")
@@ -304,7 +308,7 @@ elif page == "Admin Panel":
         if st.button(
             "🔐 Login",
             type="primary",
-            width='stretch'
+            use_container_width=True
         ):
             if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
                 st.session_state.admin_logged_in = True
@@ -349,7 +353,7 @@ elif page == "Admin Panel":
             new_marks = st.number_input("Marks", min_value=0, max_value=100, value=0)
             new_status = st.selectbox("Status", ["Pass", "Fail"])
 
-            add = st.form_submit_button("➕ Add Result", width='stretch')
+            add = st.form_submit_button("➕ Add Result", use_container_width=True)
 
             if add:
                 if not new_p_no.strip():
@@ -410,7 +414,7 @@ elif page == "Admin Panel":
                     key="edit_status"
                 )
 
-                if st.button("💾 Save Changes", type="primary", width='stretch'):
+                if st.button("💾 Save Changes", type="primary", use_container_width=True):
                     df.loc[row_index, "name"] = edit_name.strip()
                     df.loc[row_index, "trade"] = edit_trade.strip()
                     df.loc[row_index, "marks"] = edit_marks
@@ -437,7 +441,7 @@ elif page == "Admin Panel":
             data=template_csv,
             file_name="pnpi_results_template.csv",
             mime="text/csv",
-            width='stretch'
+            use_container_width=True
         )
 
         uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
@@ -452,9 +456,9 @@ elif page == "Admin Panel":
                     st.error("Missing columns: " + ", ".join(missing))
                 else:
                     st.success("✅ CSV ready for import.")
-                    st.dataframe(uploaded_df, width='stretch', hide_index=True)
+                    st.dataframe(uploaded_df, use_container_width=True, hide_index=True)
 
-                    if st.button("⬆️ Import Results", type="primary", width='stretch'):
+                    if st.button("⬆️ Import Results", type="primary", use_container_width=True):
                         uploaded_df = uploaded_df[required]
                         uploaded_df["p_no"] = uploaded_df["p_no"].astype(str).str.strip()
                         uploaded_df = uploaded_df.drop_duplicates(subset=["p_no"], keep="last")
@@ -472,7 +476,7 @@ elif page == "Admin Panel":
         if df.empty:
             st.info("No results available.")
         else:
-            st.dataframe(df, width='stretch', hide_index=True)
+            st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.divider()
 
@@ -496,7 +500,7 @@ elif page == "Admin Panel":
             data=csv_data,
             file_name="pnpi_results_backup.csv",
             mime="text/csv",
-            width='stretch'
+            use_container_width=True
         )
 
 # ==========================================
