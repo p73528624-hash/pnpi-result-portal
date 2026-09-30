@@ -77,42 +77,25 @@ st.markdown("""
     background: #eef2f6;
 }
 
-/* Header Styling - Top Left PNPI Logo */
+/* Header Styling */
 .header-container {
     background: linear-gradient(135deg, #0a192f, #1e3a8a);
     color: white;
-    padding: 18px 25px;
+    padding: 20px;
     border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 20px;
+    text-align: center;
     margin-bottom: 25px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
-.header-logo {
-    height: 70px;
-    width: auto;
-    object-fit: contain;
-    background: white;
-    padding: 4px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.header-text {
-    text-align: left;
-}
-
-.header-text h1 {
+.header-container h1 {
     margin: 0;
     font-size: 24px;
     color: #ffffff;
     font-weight: 700;
 }
 
-.header-text p {
+.header-container p {
     margin: 4px 0 0 0;
     font-size: 14px;
     color: #cbd5e1;
@@ -146,6 +129,12 @@ st.markdown("""
     border-bottom: 2px solid #e2e8f0;
     padding-bottom: 15px;
     margin-bottom: 20px;
+}
+
+.header-logo {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
 }
 
 .result-title {
@@ -226,23 +215,11 @@ st.markdown("""
 
 
 # ==========================================
-# HEADER
+# SIDEBAR (LOGO AT THE VERY TOP)
 # ==========================================
 
-st.markdown(f"""
-<div class="header-container">
-    {logo_html}
-    <div class="header-text">
-        <h1>PNPI Apprentices Result Portal</h1>
-        <p>Apprenticeship Result Verification System</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ==========================================
-# SIDEBAR
-# ==========================================
+if os.path.exists(LOGO_FILE):
+    st.sidebar.image(LOGO_FILE, use_container_width=True)
 
 st.sidebar.title("📌 Portal Menu")
 
@@ -253,6 +230,18 @@ page = st.sidebar.radio(
         "Admin Panel"
     ]
 )
+
+
+# ==========================================
+# HEADER
+# ==========================================
+
+st.markdown("""
+<div class="header-container">
+    <h1>PNPI Apprentices Result Portal</h1>
+    <p>Apprenticeship Result Verification System</p>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -280,7 +269,7 @@ if page == "Student Result":
         use_container_width=True
     ):
         if not p_no.strip():
-            st.warning("⚠️️ Please enter your P.No.")
+            st.warning("⚠️ Please enter your P.No.")
         else:
             df = load_results()
 
@@ -524,7 +513,7 @@ elif page == "Admin Panel":
                     st.success("✅ CSV ready for import.")
                     st.dataframe(uploaded_df, use_container_width=True, hide_index=True)
 
-                    if st.button("⬆️ Import Results", type="primary", use_container_width=True):
+                    if st.button("⬆️️ Import Results", type="primary", use_container_width=True):
                         uploaded_df = uploaded_df[required]
                         uploaded_df["p_no"] = uploaded_df["p_no"].astype(str).str.strip()
                         uploaded_df = uploaded_df.drop_duplicates(subset=["p_no"], keep="last")
