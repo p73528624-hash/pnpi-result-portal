@@ -77,11 +77,11 @@ st.markdown("""
     background: #eef2f6;
 }
 
-/* Header Styling with Left Corner Logo */
+/* Header Styling - Top Left PNPI Logo */
 .header-container {
     background: linear-gradient(135deg, #0a192f, #1e3a8a);
     color: white;
-    padding: 20px 25px;
+    padding: 18px 25px;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -92,9 +92,13 @@ st.markdown("""
 }
 
 .header-logo {
-    height: 75px;
+    height: 70px;
     width: auto;
     object-fit: contain;
+    background: white;
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .header-text {
@@ -214,6 +218,7 @@ st.markdown("""
     margin-top: 6px;
     font-weight: 600;
     color: #1e3a8a;
+    font-size: 14px;
 }
 
 </style>
@@ -275,7 +280,7 @@ if page == "Student Result":
         use_container_width=True
     ):
         if not p_no.strip():
-            st.warning("⚠️ Please enter your P.No.")
+            st.warning("⚠️️ Please enter your P.No.")
         else:
             df = load_results()
 
