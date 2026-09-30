@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import base64
 
 # ==========================================
 # PAGE CONFIG
@@ -13,14 +14,26 @@ st.set_page_config(
 )
 
 RESULT_FILE = "results.csv"
+LOGO_FILE = "logo.png"
 
-# Admin credentials setup (Safe fallback for local & cloud)
+# Admin credentials setup
 try:
     ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
     ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 except:
     ADMIN_USERNAME = "admin"
     ADMIN_PASSWORD = "PNPI@123"
+
+
+# Helper function to convert local image to base64
+def get_base64_image(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return None
+
+logo_base64 = get_base64_image(LOGO_FILE)
+logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="header-logo">' if logo_base64 else ''
 
 
 # ==========================================
@@ -53,69 +66,91 @@ def save_results(df):
 
 
 # ==========================================
-# CSS
+# CUSTOM NAVY BLUE CSS THEME
 # ==========================================
 
 st.markdown("""
 <style>
 
+/* App Background */
 .stApp {
-    background: #eef3f8;
+    background: #eef2f6;
 }
 
-.header {
-    background: linear-gradient(
-        135deg,
-        #064e3b,
-        #0f766e
-    );
+/* Header Styling */
+.header-container {
+    background: linear-gradient(135deg, #0a192f, #1e3a8a);
     color: white;
-    padding: 32px 20px;
-    border-radius: 16px;
+    padding: 20px;
+    border-radius: 12px;
     text-align: center;
     margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
-.header h1 {
+.header-container h1 {
     margin: 0;
-    font-size: 34px;
+    font-size: 24px;
+    color: #ffffff;
+    font-weight: 700;
 }
 
-.header p {
-    margin-top: 8px;
-    font-size: 16px;
+.header-container p {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: #cbd5e1;
 }
 
+/* Card Container */
 .card {
     background: white;
     padding: 25px;
-    border-radius: 16px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-top: 4px solid #1e3a8a;
     margin-bottom: 20px;
 }
 
+/* Marksheet Styling */
 .marksheet {
     background: white;
-    padding: 30px;
-    border-radius: 8px;
-    border: 2px solid #0f766e;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.12);
-    margin-top: 25px;
+    padding: 25px;
+    border-radius: 10px;
+    border: 2px solid #1e3a8a;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    margin-top: 20px;
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.header-logo {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
 }
 
 .result-title {
-    text-align: center;
-    color: #064e3b;
-    font-size: 27px;
+    color: #0a192f;
+    font-size: 20px;
     font-weight: bold;
+    text-align: center;
 }
 
 .result-subtitle {
+    color: #475569;
+    font-size: 13px;
     text-align: center;
-    color: #666;
-    margin-bottom: 25px;
 }
 
+/* Table Styling */
 .info-table {
     width: 100%;
     border-collapse: collapse;
@@ -123,44 +158,56 @@ st.markdown("""
 }
 
 .info-table td {
-    border: 1px solid #cfd8dc;
-    padding: 12px;
+    border: 1px solid #cbd5e1;
+    padding: 10px 14px;
+    font-size: 15px;
 }
 
 .info-label {
-    background: #f1f5f7;
-    font-weight: bold;
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #0a192f;
     width: 35%;
 }
 
+/* Status Badges */
 .pass-status {
     background: #dcfce7;
-    color: #166534;
-    padding: 13px;
+    color: #15803d;
+    padding: 10px;
     text-align: center;
-    border-radius: 8px;
-    font-size: 20px;
+    border-radius: 6px;
+    font-size: 18px;
     font-weight: bold;
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .fail-status {
     background: #fee2e2;
-    color: #991b1b;
-    padding: 13px;
+    color: #b91c1c;
+    padding: 10px;
     text-align: center;
-    border-radius: 8px;
-    font-size: 20px;
+    border-radius: 6px;
+    font-size: 18px;
     font-weight: bold;
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
+/* Footer Styling */
 .footer {
     text-align: center;
-    color: #777;
+    color: #64748b;
     font-size: 13px;
     margin-top: 40px;
     padding: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.footer-credit {
+    margin-top: 6px;
+    font-weight: 600;
+    color: #1e3a8a;
+    font-size: 14px;
 }
 
 </style>
@@ -168,20 +215,11 @@ st.markdown("""
 
 
 # ==========================================
-# HEADER
+# SIDEBAR (LOGO AT THE VERY TOP)
 # ==========================================
 
-st.markdown("""
-<div class="header">
-    <h1>🎓 PNPI Apprentices Result Portal</h1>
-    <p>Apprenticeship Result Verification System</p>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ==========================================
-# SIDEBAR
-# ==========================================
+if os.path.exists(LOGO_FILE):
+    st.sidebar.image(LOGO_FILE, use_container_width=True)
 
 st.sidebar.title("📌 Portal Menu")
 
@@ -192,6 +230,18 @@ page = st.sidebar.radio(
         "Admin Panel"
     ]
 )
+
+
+# ==========================================
+# HEADER
+# ==========================================
+
+st.markdown("""
+<div class="header-container">
+    <h1>PNPI Apprentices Result Portal</h1>
+    <p>Apprenticeship Result Verification System</p>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -240,11 +290,15 @@ if page == "Student Result":
 
                 st.success("✅ Result found successfully!")
 
-                st.markdown("""
+                st.markdown(f"""
                 <div class="marksheet">
-                    <div class="result-title">PNPI APPRENTICESHIP PROGRAM</div>
-                    <div class="result-subtitle">OFFICIAL RESULT CARD</div>
-                </div>
+                    <div class="result-header">
+                        {logo_html}
+                        <div>
+                            <div class="result-title">PAKISTAN NAVY POLYTECHNIC INSTITUTE</div>
+                            <div class="result-subtitle">OFFICIAL APPRENTICESHIP RESULT CARD</div>
+                        </div>
+                    </div>
                 """, unsafe_allow_html=True)
 
                 st.markdown(
@@ -267,6 +321,7 @@ if page == "Student Result":
                             <td><strong>{student["marks"]}</strong></td>
                         </tr>
                     </table>
+                    </div>
                     """,
                     unsafe_allow_html=True
                 )
@@ -330,8 +385,8 @@ elif page == "Admin Panel":
         # Dashboard
         st.subheader("📊 Dashboard")
         total_students = len(df)
-        pass_count = len(df[df["status"].astype(str).str.upper() == "PASS"])
-        fail_count = len(df[df["status"].astype(str).str.upper() == "FAIL"])
+        pass_count = len(df[df["status"].astype(str).str.upper() == "PASS"]) if not df.empty else 0
+        fail_count = len(df[df["status"].astype(str).str.upper() == "FAIL"]) if not df.empty else 0
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -361,7 +416,7 @@ elif page == "Admin Panel":
                 elif not new_name.strip():
                     st.error("Name required hai.")
                 else:
-                    exists = df[df["p_no"].astype(str).str.upper() == new_p_no.strip().upper()]
+                    exists = df[df["p_no"].astype(str).str.upper() == new_p_no.strip().upper()] if not df.empty else []
                     if not exists.empty:
                         st.error("Ye P.No already exist karta hai.")
                     else:
@@ -458,7 +513,7 @@ elif page == "Admin Panel":
                     st.success("✅ CSV ready for import.")
                     st.dataframe(uploaded_df, use_container_width=True, hide_index=True)
 
-                    if st.button("⬆️ Import Results", type="primary", use_container_width=True):
+                    if st.button("⬆️️ Import Results", type="primary", use_container_width=True):
                         uploaded_df = uploaded_df[required]
                         uploaded_df["p_no"] = uploaded_df["p_no"].astype(str).str.strip()
                         uploaded_df = uploaded_df.drop_duplicates(subset=["p_no"], keep="last")
@@ -509,7 +564,8 @@ elif page == "Admin Panel":
 
 st.markdown("""
 <div class="footer">
-    PNPI Apprentices Result Portal<br><br>
-    © 2026 PNPI — All Rights Reserved
+    PNPI Apprentices Result Portal<br>
+    © 2026 PNPI — All Rights Reserved<br>
+    <div class="footer-credit">Prepared by Muhammad Farooq</div>
 </div>
 """, unsafe_allow_html=True)
