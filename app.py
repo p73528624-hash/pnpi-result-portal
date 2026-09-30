@@ -77,22 +77,22 @@ st.markdown("""
     background: #eef2f6;
 }
 
-/* Header Styling */
+/* Header Styling with Left Corner Logo */
 .header-container {
     background: linear-gradient(135deg, #0a192f, #1e3a8a);
     color: white;
-    padding: 25px 20px;
+    padding: 20px 25px;
     border-radius: 12px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 20px;
     margin-bottom: 25px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
 .header-logo {
-    height: 80px;
+    height: 75px;
     width: auto;
     object-fit: contain;
 }
@@ -103,7 +103,7 @@ st.markdown("""
 
 .header-text h1 {
     margin: 0;
-    font-size: 26px;
+    font-size: 24px;
     color: #ffffff;
     font-weight: 700;
 }
@@ -144,21 +144,16 @@ st.markdown("""
     margin-bottom: 20px;
 }
 
-.marksheet-logo {
-    height: 60px;
-    width: auto;
-}
-
 .result-title {
     color: #0a192f;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
     text-align: center;
 }
 
 .result-subtitle {
     color: #475569;
-    font-size: 14px;
+    font-size: 13px;
     text-align: center;
 }
 
@@ -205,12 +200,20 @@ st.markdown("""
     margin-top: 15px;
 }
 
+/* Footer Styling */
 .footer {
     text-align: center;
     color: #64748b;
     font-size: 13px;
     margin-top: 40px;
     padding: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.footer-credit {
+    margin-top: 6px;
+    font-weight: 600;
+    color: #1e3a8a;
 }
 
 </style>
@@ -568,6 +571,7 @@ elif page == "Admin Panel":
 st.markdown("""
 <div class="footer">
     PNPI Apprentices Result Portal<br>
-    © 2026 PNPI — All Rights Reserved
+    © 2026 PNPI — All Rights Reserved<br>
+    <div class="footer-credit">Prepared by Muhammad Farooq</div>
 </div>
 """, unsafe_allow_html=True)
