@@ -1,571 +1,397 @@
 import streamlit as st
 import pandas as pd
+import json
 import os
-import base64
+from PIL import Image
 
-# ==========================================
-# PAGE CONFIG
-# ==========================================
-
+# Set Streamlit Page Config
 st.set_page_config(
-    page_title="PNPI Apprentices Result Portal",
+    page_title="Pakistan Navy Polytechnic Institute (PNPI) - Examination Portal",
     page_icon="🎓",
-    layout="centered"
+    layout="wide"
 )
 
-RESULT_FILE = "results.csv"
+# ---------------------------------------------------------
+# CONSTANTS & CONFIGURATION
+# ---------------------------------------------------------
+DATA_FILE = "students.json"
+SETTINGS_FILE = "settings.json"
 LOGO_FILE = "logo.png"
 
-# Admin credentials setup
-try:
-    ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
-    ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
-except:
-    ADMIN_USERNAME = "admin"
-    ADMIN_PASSWORD = "PNPI@123"
+TECHNOLOGIES = [
+    "Electrical Technology",
+    "Electronics Technology",
+    "Mechatronics Technology",
+    "Mechanical Technology",
+    "Ship Construction Technology"
+]
 
+DEFAULT_SUBJECTS = {
+    "Electrical Technology": ["Electrical Circuits", "Power Electronics", "AC Machines", "Electrical Instruments", "Industrial Automation"],
+    "Electronics Technology": ["Basic Electronics", "Digital Systems", "Microcontrollers", "Communication Systems", "Circuit Design"],
+    "Mechatronics Technology": ["Robotics & Automation", "Sensors & Actuators", "PLCs & Control Systems", "Embedded Systems", "CAD/CAM"],
+    "Mechanical Technology": ["Thermodynamics", "Fluid Mechanics", "Engineering Drawing", "Manufacturing Processes", "Mechanics of Materials"],
+    "Ship Construction Technology": ["Naval Architecture", "Ship Stability", "Shipbuilding Materials", "Marine Engineering", "Ship Systems"]
+}
 
-# Helper function to convert local image to base64
-def get_base64_image(image_path):
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    return None
+DEFAULT_SETTINGS = {
+    "portal_active": True,
+    "theme": "Navy Blue Official"
+}
 
-logo_base64 = get_base64_image(LOGO_FILE)
-logo_html = f'<img src="data:image/png;base64,{logo_base64}" class="header-logo">' if logo_base64 else ''
+# ---------------------------------------------------------
+# HELPER FUNCTIONS FOR DATA MANAGEMENT
+# ---------------------------------------------------------
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            try:
+                return json.load(f)
+            except Exception:
+                return []
+    return []
 
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
-# ==========================================
-# DATABASE FUNCTIONS
-# ==========================================
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, "r") as f:
+            try:
+                return json.load(f)
+            except Exception:
+                return DEFAULT_SETTINGS
+    return DEFAULT_SETTINGS
 
-def load_results():
-    if not os.path.exists(RESULT_FILE):
-        df = pd.DataFrame(
-            columns=[
-                "p_no",
-                "name",
-                "trade",
-                "marks",
-                "status"
-            ]
-        )
-        df.to_csv(
-            RESULT_FILE,
-            index=False
-        )
-    return pd.read_csv(RESULT_FILE)
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=4)
 
+def calculate_grade_and_status(percentage):
+    if percentage >= 80:
+        return "A-1 (Excellent)", "PASS"
+    elif percentage >= 70:
+        return "A (Very Good)", "PASS"
+    elif percentage >= 60:
+        return "B (Good)", "PASS"
+    elif percentage >= 50:
+        return "C (Fair)", "PASS"
+    elif percentage >= 40:
+        return "D (Satisfactory)", "PASS"
+    else:
+        return "F (Fail)", "FAIL"
 
-def save_results(df):
-    df.to_csv(
-        RESULT_FILE,
-        index=False
-    )
+# Load initial state
+students_data = load_data()
+settings = load_settings()
 
+# ---------------------------------------------------------
+# CUSTOM THEME STYLING
+# ---------------------------------------------------------
+current_theme = settings.get("theme", "Navy Blue Official")
 
-# ==========================================
-# CUSTOM NAVY BLUE CSS THEME
-# ==========================================
+if current_theme == "Navy Blue Official":
+    primary_color = "#002147"
+    accent_color = "#0056b3"
+    bg_gradient = "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)"
+elif current_theme == "Emerald Green Academic":
+    primary_color = "#0f5132"
+    accent_color = "#198754"
+    bg_gradient = "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)"
+else:  # Dark Modern Slate
+    primary_color = "#1e293b"
+    accent_color = "#0f172a"
+    bg_gradient = "linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)"
 
-st.markdown("""
+st.markdown(f"""
 <style>
-
-/* App Background */
-.stApp {
-    background: #eef2f6;
-}
-
-/* Header Styling */
-.header-container {
-    background: linear-gradient(135deg, #0a192f, #1e3a8a);
-    color: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-}
-
-.header-container h1 {
-    margin: 0;
-    font-size: 24px;
-    color: #ffffff;
-    font-weight: 700;
-}
-
-.header-container p {
-    margin: 4px 0 0 0;
-    font-size: 14px;
-    color: #cbd5e1;
-}
-
-/* Card Container */
-.card {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-top: 4px solid #1e3a8a;
-    margin-bottom: 20px;
-}
-
-/* Marksheet Styling */
-.marksheet {
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    border: 2px solid #1e3a8a;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    margin-top: 20px;
-}
-
-.result-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
-.header-logo {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
-}
-
-.result-title {
-    color: #0a192f;
-    font-size: 20px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.result-subtitle {
-    color: #475569;
-    font-size: 13px;
-    text-align: center;
-}
-
-/* Table Styling */
-.info-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-.info-table td {
-    border: 1px solid #cbd5e1;
-    padding: 10px 14px;
-    font-size: 15px;
-}
-
-.info-label {
-    background: #f1f5f9;
-    font-weight: 600;
-    color: #0a192f;
-    width: 35%;
-}
-
-/* Status Badges */
-.pass-status {
-    background: #dcfce7;
-    color: #15803d;
-    padding: 10px;
-    text-align: center;
-    border-radius: 6px;
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 15px;
-}
-
-.fail-status {
-    background: #fee2e2;
-    color: #b91c1c;
-    padding: 10px;
-    text-align: center;
-    border-radius: 6px;
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 15px;
-}
-
-/* Footer Styling */
-.footer {
-    text-align: center;
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 40px;
-    padding: 20px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.footer-credit {
-    margin-top: 6px;
-    font-weight: 600;
-    color: #1e3a8a;
-    font-size: 14px;
-}
-
+    .main-header {{
+        background-color: {primary_color};
+        color: white;
+        padding: 25px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 25px;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
+    }}
+    .main-header h1 {{
+        color: #ffffff !important;
+        font-family: 'Arial', sans-serif;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }}
+    .main-header h3 {{
+        color: #e2e8f0 !important;
+        font-weight: 400;
+        margin-top: 0px;
+    }}
+    .sub-title {{
+        color: #f8fafc !important;
+        font-size: 16px;
+    }}
+    .card {{
+        background-color: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        border-left: 5px solid {primary_color};
+    }}
+    .result-badge-pass {{
+        background-color: #d1e7dd;
+        color: #0f5132;
+        font-weight: bold;
+        padding: 6px 16px;
+        border-radius: 20px;
+        display: inline-block;
+    }}
+    .result-badge-fail {{
+        background-color: #f8d7da;
+        color: #842029;
+        font-weight: bold;
+        padding: 6px 16px;
+        border-radius: 20px;
+        display: inline-block;
+    }}
+    .footer {{
+        text-align: center;
+        padding: 20px;
+        font-size: 14px;
+        color: #64748b;
+        margin-top: 40px;
+        border-top: 1px solid #e2e8f0;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------------------------------------------------
+# SIDEBAR NAVIGATION & LOGO
+# ---------------------------------------------------------
+with st.sidebar:
+    if os.path.exists(LOGO_FILE):
+        try:
+            logo_img = Image.open(LOGO_FILE)
+            st.image(logo_img, use_container_width=True)
+        except Exception:
+            pass
+    
+    st.title("Navigation Menu")
+    nav_option = st.radio("Select Portal Area:", ["Public Result Search", "Administrative Portal"])
+    
+    st.markdown("---")
+    st.info("PNPI Examination Automation System v2.0")
 
-# ==========================================
-# SIDEBAR (LOGO AT THE VERY TOP)
-# ==========================================
-
-if os.path.exists(LOGO_FILE):
-    st.sidebar.image(LOGO_FILE, use_container_width=True)
-
-st.sidebar.title("📌 Portal Menu")
-
-page = st.sidebar.radio(
-    "Select Page",
-    [
-        "Student Result",
-        "Admin Panel"
-    ]
-)
-
-
-# ==========================================
-# HEADER
-# ==========================================
-
-st.markdown("""
-<div class="header-container">
-    <h1>PNPI Apprentices Result Portal</h1>
-    <p>Apprenticeship Result Verification System</p>
+# ---------------------------------------------------------
+# HEADER SECTION
+# ---------------------------------------------------------
+st.markdown(f"""
+<div class="main-header">
+    <h1>PAKISTAN NAVY POLYTECHNIC INSTITUTE</h1>
+    <h3>Board of Technical Examinations & Assessment</h3>
+    <p class="sub-title">Official Online Result Portal & Academic Transcript System</p>
 </div>
 """, unsafe_allow_html=True)
 
-
-# ==========================================
-# STUDENT RESULT
-# ==========================================
-
-if page == "Student Result":
-
-    st.markdown("""
-    <div class="card">
-        <h3>🔎 Check Your Result</h3>
-        <p>Enter your P.No to view your apprenticeship result.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    p_no = st.text_input(
-        "Enter P.No",
-        placeholder="Example: PNPI001",
-        max_chars=30
-    )
-
-    if st.button(
-        "🔍 Check Result",
-        type="primary",
-        use_container_width=True
-    ):
-        if not p_no.strip():
-            st.warning("⚠️ Please enter your P.No.")
-        else:
-            df = load_results()
-
-            result = df[
-                df["p_no"]
-                .astype(str)
-                .str.strip()
-                .str.upper()
-                ==
-                p_no.strip().upper()
-            ]
-
-            if result.empty:
-                st.error("❌ Result not found. Please check your P.No.")
-            else:
-                student = result.iloc[0]
-                status = str(student["status"]).strip().upper()
-
-                st.success("✅ Result found successfully!")
-
-                st.markdown(f"""
-                <div class="marksheet">
-                    <div class="result-header">
-                        {logo_html}
-                        <div>
-                            <div class="result-title">PAKISTAN NAVY POLYTECHNIC INSTITUTE</div>
-                            <div class="result-subtitle">OFFICIAL APPRENTICESHIP RESULT CARD</div>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown(
-                    f"""
-                    <table class="info-table">
-                        <tr>
-                            <td class="info-label">P.No</td>
-                            <td>{student["p_no"]}</td>
-                        </tr>
-                        <tr>
-                            <td class="info-label">Apprentice Name</td>
-                            <td>{student["name"]}</td>
-                        </tr>
-                        <tr>
-                            <td class="info-label">Trade</td>
-                            <td>{student["trade"]}</td>
-                        </tr>
-                        <tr>
-                            <td class="info-label">Marks Obtained</td>
-                            <td><strong>{student["marks"]}</strong></td>
-                        </tr>
-                    </table>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                if status == "PASS":
-                    st.markdown(
-                        '<div class="pass-status">🎉 PASS</div>',
-                        unsafe_allow_html=True
-                    )
-                elif status == "FAIL":
-                    st.markdown(
-                        '<div class="fail-status">❌ FAIL</div>',
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.warning(f"Status: {student['status']}")
-
-                st.divider()
-                st.info("Result print/save karne ke liye browser ka Print option use karein.")
-
-
-# ==========================================
-# ADMIN PANEL
-# ==========================================
-
-elif page == "Admin Panel":
-
-    st.subheader("🔐 Admin Panel")
-
-    if "admin_logged_in" not in st.session_state:
-        st.session_state.admin_logged_in = False
-
-    if not st.session_state.admin_logged_in:
-        st.info("Admin panel access ke liye login karein.")
-
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-
-        if st.button(
-            "🔐 Login",
-            type="primary",
-            use_container_width=True
-        ):
-            if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-                st.session_state.admin_logged_in = True
-                st.success("✅ Login successful!")
-                st.rerun()
-            else:
-                st.error("❌ Incorrect username or password.")
-
+# ---------------------------------------------------------
+# PAGE 1: PUBLIC RESULT SEARCH
+# ---------------------------------------------------------
+if nav_option == "Public Result Search":
+    st.subheader("🔍 Student Result Verification")
+    
+    if not settings.get("portal_active", True):
+        st.warning("⚠️ The Result Portal is currently offline for maintenance or official processing. Please check back later.")
     else:
-        st.success("🟢 Admin logged in")
-
-        if st.button("🚪 Logout"):
-            st.session_state.admin_logged_in = False
-            st.rerun()
-
-        df = load_results()
-        st.divider()
-
-        # Dashboard
-        st.subheader("📊 Dashboard")
-        total_students = len(df)
-        pass_count = len(df[df["status"].astype(str).str.upper() == "PASS"]) if not df.empty else 0
-        fail_count = len(df[df["status"].astype(str).str.upper() == "FAIL"]) if not df.empty else 0
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total", total_students)
-        with col2:
-            st.metric("Pass", pass_count)
-        with col3:
-            st.metric("Fail", fail_count)
-
-        st.divider()
-
-        # Add Result
-        st.subheader("➕ Add New Result")
-
-        with st.form("add_result"):
-            new_p_no = st.text_input("P.No")
-            new_name = st.text_input("Name")
-            new_trade = st.text_input("Trade")
-            new_marks = st.number_input("Marks", min_value=0, max_value=100, value=0)
-            new_status = st.selectbox("Status", ["Pass", "Fail"])
-
-            add = st.form_submit_button("➕ Add Result", use_container_width=True)
-
-            if add:
-                if not new_p_no.strip():
-                    st.error("P.No required hai.")
-                elif not new_name.strip():
-                    st.error("Name required hai.")
-                else:
-                    exists = df[df["p_no"].astype(str).str.upper() == new_p_no.strip().upper()] if not df.empty else []
-                    if not exists.empty:
-                        st.error("Ye P.No already exist karta hai.")
+        search_tab1, search_tab2 = st.tabs(["Search by Roll / Reg No.", "Search by Student Name"])
+        
+        found_student = None
+        
+        # Search Option 1: Roll No
+        with search_tab1:
+            with st.form("search_roll_form"):
+                query_roll = st.text_input("Enter Roll Number / Registration Number:", placeholder="e.g., PNPI-2024-101")
+                btn_roll = st.form_submit_button("Search Result")
+                if btn_roll and query_roll:
+                    for s in students_data:
+                        if str(s.get("roll_no", "")).strip().lower() == query_roll.strip().lower():
+                            found_student = s
+                            break
+                    if not found_student:
+                        st.error("No record found matching the provided Roll / Registration Number.")
+        
+        # Search Option 2: Student Name
+        with search_tab2:
+            with st.form("search_name_form"):
+                query_name = st.text_input("Enter Candidate Full Name:", placeholder="e.g., Muhammad Ali")
+                btn_name = st.form_submit_button("Search Candidates")
+                if btn_name and query_name:
+                    matches = [s for s in students_data if query_name.strip().lower() in s.get("name", "").strip().lower()]
+                    if len(matches) == 1:
+                        found_student = matches[0]
+                    elif len(matches) > 1:
+                        st.info(f"Multiple candidates found ({len(matches)}). Please select from below:")
+                        selected_roll = st.selectbox("Select Candidate:", [f"{s['name']} (Roll: {s['roll_no']})" for s in matches])
+                        sel_roll_no = selected_roll.split("(Roll: ")[1].replace(")", "")
+                        for s in matches:
+                            if s["roll_no"] == sel_roll_no:
+                                found_student = s
+                                break
                     else:
-                        new_row = pd.DataFrame([{
-                            "p_no": new_p_no.strip(),
-                            "name": new_name.strip(),
-                            "trade": new_trade.strip(),
-                            "marks": new_marks,
-                            "status": new_status
-                        }])
-                        df = pd.concat([df, new_row], ignore_index=True)
-                        save_results(df)
-                        st.success("✅ Result added successfully.")
-                        st.rerun()
+                        st.error("No candidate found matching the entered name.")
 
-        st.divider()
-
-        # Edit Result
-        st.subheader("✏️ Edit / Update Result")
-        df = load_results()
-
-        if df.empty:
-            st.info("Edit karne ke liye koi result nahi.")
-        else:
-            edit_p_no = st.selectbox("Select P.No to Edit", df["p_no"].astype(str).tolist(), key="edit_select")
-            selected = df[df["p_no"].astype(str) == edit_p_no]
-
-            if not selected.empty:
-                row_index = selected.index[0]
-                current = df.loc[row_index]
-
-                edit_name = st.text_input("Name", value=str(current["name"]), key="edit_name")
-                edit_trade = st.text_input("Trade", value=str(current["trade"]), key="edit_trade")
-
-                try:
-                    current_marks = int(float(current["marks"]))
-                except:
-                    current_marks = 0
-
-                edit_marks = st.number_input("Marks", min_value=0, max_value=100, value=current_marks, key="edit_marks")
-                current_status = str(current["status"]).strip().title()
-
-                if current_status not in ["Pass", "Fail"]:
-                    current_status = "Pass"
-
-                edit_status = st.selectbox(
-                    "Status",
-                    ["Pass", "Fail"],
-                    index=["Pass", "Fail"].index(current_status),
-                    key="edit_status"
-                )
-
-                if st.button("💾 Save Changes", type="primary", use_container_width=True):
-                    df.loc[row_index, "name"] = edit_name.strip()
-                    df.loc[row_index, "trade"] = edit_trade.strip()
-                    df.loc[row_index, "marks"] = edit_marks
-                    df.loc[row_index, "status"] = edit_status
-                    save_results(df)
-                    st.success("✅ Result updated successfully.")
-                    st.rerun()
-
-        st.divider()
-
-        # Bulk Upload
-        st.subheader("📤 Bulk CSV Upload")
-        template = pd.DataFrame([{
-            "p_no": "PNPI006",
-            "name": "Test Student",
-            "trade": "Electrical",
-            "marks": 75,
-            "status": "Pass"
-        }])
-
-        template_csv = template.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "📥 Download CSV Template",
-            data=template_csv,
-            file_name="pnpi_results_template.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-
-        uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-
-        if uploaded_file is not None:
-            try:
-                uploaded_df = pd.read_csv(uploaded_file)
-                required = ["p_no", "name", "trade", "marks", "status"]
-                missing = [col for col in required if col not in uploaded_df.columns]
-
-                if missing:
-                    st.error("Missing columns: " + ", ".join(missing))
+        # DISPLAY MARKSHEET / RESULT
+        if found_student:
+            st.markdown("---")
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            
+            c1, c2 = st.columns([3, 1])
+            with c1:
+                st.markdown(f"### **PROVISIONAL RESULT CARD**")
+                st.write(f"**Candidate Name:** {found_student.get('name')}")
+                st.write(f"**Father's Name:** {found_student.get('father_name')}")
+                st.write(f"**Roll Number:** {found_student.get('roll_no')}")
+                st.write(f"**Technology:** {found_student.get('technology')}")
+                st.write(f"**Session / Year:** {found_student.get('session')}")
+            
+            # Subject Breakdown Table
+            subjects = found_student.get("subjects", {})
+            total_max = 0
+            total_obt = 0
+            
+            table_data = []
+            for sub_name, marks in subjects.items():
+                max_m = marks.get("max_marks", 100)
+                obt_m = marks.get("obtained_marks", 0)
+                total_max += max_m
+                total_obt += obt_m
+                
+                sub_status = "Pass" if obt_m >= (max_m * 0.4) else "Fail"
+                table_data.append({
+                    "Subject Title": sub_name,
+                    "Total Marks": max_m,
+                    "Obtained Marks": obt_m,
+                    "Status": sub_status
+                })
+            
+            percentage = (total_obt / total_max * 100) if total_max > 0 else 0
+            grade, overall_status = calculate_grade_and_status(percentage)
+            
+            with c2:
+                st.markdown("#### **Overall Status**")
+                if overall_status == "PASS":
+                    st.markdown(f'<div class="result-badge-pass">STATUS: {overall_status}</div>', unsafe_allow_html=True)
                 else:
-                    st.success("✅ CSV ready for import.")
-                    st.dataframe(uploaded_df, use_container_width=True, hide_index=True)
+                    st.markdown(f'<div class="result-badge-fail">STATUS: {overall_status}</div>', unsafe_allow_html=True)
+                
+                st.metric("Total Obtained", f"{total_obt} / {total_max}")
+                st.metric("Percentage", f"{percentage:.2f}%")
+                st.metric("Grade", grade)
 
-                    if st.button("⬆️️ Import Results", type="primary", use_container_width=True):
-                        uploaded_df = uploaded_df[required]
-                        uploaded_df["p_no"] = uploaded_df["p_no"].astype(str).str.strip()
-                        uploaded_df = uploaded_df.drop_duplicates(subset=["p_no"], keep="last")
-                        save_results(uploaded_df)
-                        st.success(f"🎉 {len(uploaded_df)} results imported.")
-                        st.rerun()
-            except Exception as e:
-                st.error(f"❌ CSV Error: {e}")
+            st.markdown("---")
+            st.markdown("#### **Detailed Marks Distribution**")
+            df_marks = pd.DataFrame(table_data)
+            st.dataframe(df_marks, use_container_width=True, hide_index=True)
+            
+            st.caption("Note: This provisional transcript is computer-generated and does not require a manual signature. Official certificates will be issued separately.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        st.divider()
+# ---------------------------------------------------------
+# PAGE 2: ADMINISTRATIVE PORTAL
+# ---------------------------------------------------------
+elif nav_option == "Administrative Portal":
+    st.subheader("🔒 Administrative Control Panel")
+    
+    # Simple Admin Authentication
+    admin_user = st.text_input("Admin Username:", type="default")
+    admin_pass = st.text_input("Admin Password:", type="password")
+    
+    if admin_user == "admin" and admin_pass == "PNPI@123":
+        st.success("Authentication Successful! Welcome, Administrator.")
+        
+        admin_tab1, admin_tab2, admin_tab3 = st.tabs(["System & Portal Controls", "Add New Student Record", "Manage Existing Records"])
+        
+        # TAB 1: PORTAL CONTROLS & THEME SWITCHER
+        with admin_tab1:
+            st.markdown("### **Portal Configuration & Status**")
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                portal_status = st.toggle("Public Result Portal Active", value=settings.get("portal_active", True))
+            
+            with col_b:
+                selected_theme = st.selectbox("Select Official UI Theme:", ["Navy Blue Official", "Emerald Green Academic", "Dark Modern Slate"], index=["Navy Blue Official", "Emerald Green Academic", "Dark Modern Slate"].index(settings.get("theme", "Navy Blue Official")))
+            
+            if st.button("Save Configuration Changes"):
+                settings["portal_active"] = portal_status
+                settings["theme"] = selected_theme
+                save_settings(settings)
+                st.success("System configurations updated successfully! Please refresh to view changes.")
+        
+        # TAB 2: ADD NEW STUDENT
+        with admin_tab2:
+            st.markdown("### **Enroll Candidate & Add Examination Marks**")
+            
+            with st.form("add_student_form"):
+                f_name = st.text_input("Candidate Full Name:")
+                f_father = st.text_input("Father's Name:")
+                f_roll = st.text_input("Roll / Registration Number:")
+                f_session = st.selectbox("Academic Session:", ["2023-2026", "2024-2027", "2025-2028"])
+                f_tech = st.selectbox("Technology / Field:", TECHNOLOGIES)
+                
+                st.markdown("#### **Enter Marks for Subjects**")
+                tech_subjects = DEFAULT_SUBJECTS[f_tech]
+                
+                subj_marks_input = {}
+                cols = st.columns(len(tech_subjects))
+                for idx, subj in enumerate(tech_subjects):
+                    with cols[idx % len(cols)]:
+                        st.markdown(f"**{subj}**")
+                        max_m = st.number_input(f"Max Marks ({subj}):", min_value=1, max_value=200, value=100, key=f"max_{idx}")
+                        obt_m = st.number_input(f"Obtained ({subj}):", min_value=0, max_value=200, value=0, key=f"obt_{idx}")
+                        subj_marks_input[subj] = {"max_marks": max_m, "obtained_marks": obt_m}
+                
+                submit_student = st.form_submit_button("Save Student Record")
+                
+                if submit_student:
+                    if not f_name or not f_roll:
+                        st.error("Student Name and Roll Number are required fields.")
+                    else:
+                        new_record = {
+                            "roll_no": f_roll,
+                            "name": f_name,
+                            "father_name": f_father,
+                            "session": f_session,
+                            "technology": f_tech,
+                            "subjects": subj_marks_input
+                        }
+                        students_data.append(new_record)
+                        save_data(students_data)
+                        st.success(f"Record for {f_name} ({f_roll}) created successfully!")
 
-        # Current Database & Delete
-        st.subheader("📋 Current Results")
-        df = load_results()
-        if df.empty:
-            st.info("No results available.")
-        else:
-            st.dataframe(df, use_container_width=True, hide_index=True)
+        # TAB 3: MANAGE RECORDS
+        with admin_tab3:
+            st.markdown("### **Registered Students Database**")
+            if students_data:
+                df_all = pd.DataFrame(students_data)
+                st.dataframe(df_all[["roll_no", "name", "father_name", "technology", "session"]], use_container_width=True)
+                
+                roll_to_delete = st.selectbox("Select Roll No to Delete Record:", [s["roll_no"] for s in students_data])
+                if st.button("Delete Record"):
+                    students_data = [s for s in students_data if s["roll_no"] != roll_to_delete]
+                    save_data(students_data)
+                    st.success(f"Record {roll_to_delete} deleted successfully.")
+                    st.rerun()
+            else:
+                st.info("No student records available in database.")
+    elif admin_pass or admin_user:
+        st.error("Invalid Username or Password.")
 
-        st.divider()
-
-        st.subheader("🗑️ Delete Result")
-        df = load_results()
-        if not df.empty:
-            delete_p_no = st.selectbox("Select P.No", df["p_no"].astype(str).tolist(), key="delete_select")
-            if st.button("🗑️ Delete Selected Result"):
-                df = df[df["p_no"].astype(str) != delete_p_no]
-                save_results(df)
-                st.success("✅ Result deleted successfully.")
-                st.rerun()
-
-        st.divider()
-
-        st.subheader("📥 Download Database")
-        df = load_results()
-        csv_data = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "📥 Download Current Results",
-            data=csv_data,
-            file_name="pnpi_results_backup.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-
-# ==========================================
-# FOOTER
-# ==========================================
-
+# ---------------------------------------------------------
+# FOOTER SECTION
+# ---------------------------------------------------------
 st.markdown("""
 <div class="footer">
-    PNPI Apprentices Result Portal<br>
-    © 2026 PNPI — All Rights Reserved<br>
-    <div class="footer-credit">Prepared by Muhammad Farooq</div>
+    <p>© 2026 Pakistan Navy Polytechnic Institute (PNPI). All Rights Reserved.</p>
+    <p>Prepared by Muhammad Farooq | System Administrator</p>
 </div>
 """, unsafe_allow_html=True)
